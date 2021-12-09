@@ -1,0 +1,9 @@
+**/*.min.js
+**/*.min.css
+
+.idea/
+node_modules/
+dist/
+build/
+
+__coverage__

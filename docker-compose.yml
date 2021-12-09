@@ -1,0 +1,84 @@
+version: '3'
+services:
+
+  localstack:
+    image: localstack/localstack:0.11.2
+    container_name: localstack
+    ports:
+      - "4576:4576"
+    environment:
+      - SERVICES=sqs,dynamodb
+      - DATA_DIR=/tmp/localstack/data
+      - DOCKER_HOST=unix:///var/run/docker.sock
+
+      # AWS
+      - AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+      - AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+      - AWS_DEFAULT_REGION=us-east-2
+      - AWS_DEFAULT_OUTPUT=json
+    volumes:
+      - "./localstack:/tmp/localstack"
+
+  hub-api:
+    image: node:16.13.0-alpine
+    container_name: hub-api
+    user: "node"
+    working_dir: /home/node/app
+    restart: always
+    volumes:
+        - "./api:/home/node/app"
+    env_file: .env
+    environment:
+      - PORT=3001
+
+      # AWS
+      - AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+      - AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+      - AWS_DEFAULT_REGION=us-east-2
+      - AWS_DEFAULT_OUTPUT=json
+    ports:
+      - 3001:3001
+    depends_on:
+      - localstack
+    command: yarn start:dev
+  
+  hub-delivery-consumer-request:
+    image: node:16.13.0-alpine
+    container_name: hub-delivery-consumer-request
+    user: "node"
+    working_dir: /home/node/app
+    restart: always
+    volumes:
+        - "./delivery-consumer-request:/home/node/app"
+    environment:
+      # AWS
+      - AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+      - AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+      - AWS_DEFAULT_REGION=us-east-2
+      - AWS_DEFAULT_OUTPUT=json
+    depends_on:
+      - localstack
+    command: yarn start:dev
+  
+  hub-delivery-consumer-response:
+    image: node:16.13.0-alpine
+    container_name: hub-delivery-consumer-response
+    user: "node"
+    working_dir: /home/node/app
+    restart: always
+    volumes:
+        - "./delivery-consumer-response:/home/node/app"
+    environment:
+      # AWS
+      - AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+      - AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+      - AWS_DEFAULT_REGION=us-east-2
+      - AWS_DEFAULT_OUTPUT=json
+    depends_on:
+      - localstack
+    command: yarn start:dev
+
+networks:
+  default:
+    external:
+      name: "localstack"
