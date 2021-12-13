@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "start": "node build/index.js",
-    "start:dev": "ts-node-dev --respawn --transpile-only --inspect --ignore node_modules -r tsconfig-paths/register -r dotenv/config ./src/index.ts",
+    "start:dev": "ts-node-dev --respawn --transpile-only --ignore node_modules -r tsconfig-paths/register -r dotenv/config ./src/index.ts",
     "build": "rimraf ./build && tsc --project tsconfig-build.json && tscpaths -p tsconfig-build.json -s ./src -o ./build",
     "lint": "eslint --fix --ext .js,.ts,.json .",
     "test": "jest --config jest.config.ts"
@@ -17,6 +17,7 @@
     "@types/uuid": "^8.3.3",
     "@typescript-eslint/eslint-plugin": "^5.5.0",
     "@typescript-eslint/parser": "^5.5.0",
+    "dotenv": "^10.0.0",
     "eslint": "^8.4.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^4.0.0",
@@ -33,9 +34,8 @@
   "dependencies": {
     "aws-sdk": "^2.1043.0",
     "clean-deep": "^3.4.0",
-    "dotenv": "^10.0.0",
-    "dynamoose": "^2.8.3",
     "express": "^4.17.1",
+    "mongoose": "^6.1.1",
     "uuid": "^8.3.2"
   }
 }
