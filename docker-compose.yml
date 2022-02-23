@@ -7,7 +7,7 @@ services:
     ports:
       - "4576:4576"
     environment:
-      - SERVICES=sqs,dynamodb
+      - SERVICES=sqs
       - DATA_DIR=/tmp/localstack/data
       - DOCKER_HOST=unix:///var/run/docker.sock
 
@@ -17,7 +17,14 @@ services:
       - AWS_DEFAULT_REGION=us-east-2
       - AWS_DEFAULT_OUTPUT=json
     volumes:
-      - "./localstack:/tmp/localstack"
+      - ".data/localstack:/tmp/localstack"
+  
+  mongo:
+    image: mongo:4
+    container_name: mongo
+    restart: always
+    volumes:
+      - .data/mongo:/data/db
 
   hub-api:
     image: node:16.13.0-alpine
@@ -40,6 +47,7 @@ services:
       - 3001:3001
     depends_on:
       - localstack
+      - mongo
     command: yarn start:dev
   
   hub-delivery-consumer-request:

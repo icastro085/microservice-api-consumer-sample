@@ -4,7 +4,7 @@
     "lib": ["es2021"],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "module": "commonjs",
+    "module": "CommonJS",
     "baseUrl": "./src",
     "resolveJsonModule": true,
     "allowJs": true,

@@ -1,36 +1,70 @@
 import express, { Request, Response } from "express";
 import AWS from "aws-sdk";
-import dynamoose from "dynamoose";
+import mongoose, { Schema } from "mongoose";
 import { v4 as uuid } from "uuid";
 import cleanDeep from "clean-deep";
 
+// -----------------
 const PORT = (process.env.PORT || 3001) as string | number;
 const SQS_URL_DELIVERY = process.env.SQS_URL_DELIVERY as string;
-const DYNAMODB_URL = process.env.DYNAMODB_URL as string;
+const MONGODB_URL = process.env.MONGODB_URL as string;
+
+type AnyThing = Record<string, unknown>;
+
+const logger = (value: AnyThing | unknown) => console.log(value);
 
 // -----------------
-dynamoose.aws.sdk.config.update({ region: "us-east-2" });
-dynamoose.aws.ddb.local(DYNAMODB_URL);
+const schemaNormalizePlugin = (schema: Schema) => {
+  const options = ["toObject", "toJSON"] as const;
+  type OptionsTypes = typeof options[number];
 
-const DeliverySchema = new dynamoose.Schema(
-  {
-    id: {
+  options.forEach((key: OptionsTypes) => {
+    schema.set(key, { virtuals: true });
+  });
+
+  schema.add({
+    _id: {
       type: String,
-      hashKey: true,
-      default: uuid,
+      default: function () {
+        const { id } = this as AnyThing;
+        return id;
+      },
     },
-    organizationId: String,
-    description: String,
-    status: {
-      type: String,
-      enum: ["PEDDING", "PROCESSING", "WAITING", "FINISHED", "CANCELED"],
-      default: "PEDDING",
-    },
+  });
+
+  schema.set("versionKey", false);
+  schema.set("timestamps", true);
+};
+
+mongoose.plugin(schemaNormalizePlugin);
+
+interface Delivery {
+  id?: string;
+  organizationId: string;
+  description?: string;
+  status: "PEDDING" | "PROCESSING" | "WAITING" | "FINISHED" | "CANCELED";
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+const DeliverySchema = new Schema<Delivery>({
+  id: {
+    type: String,
+    default: uuid,
   },
-  { timestamps: true, saveUnknown: false },
-);
+  organizationId: {
+    type: String,
+    required: true,
+  },
+  description: String,
+  status: {
+    type: String,
+    enum: ["PEDDING", "PROCESSING", "WAITING", "FINISHED", "CANCELED"],
+    default: "PEDDING",
+  },
+});
 
-const DeliveryModel = dynamoose.model("Delivery", DeliverySchema);
+const DeliveryModel = mongoose.model<Delivery>("DeliveryModel", DeliverySchema);
 
 // -----------------
 const sqs = new AWS.SQS({ region: "us-east-1" });
@@ -39,90 +73,104 @@ const app = express();
 app.use(express.json());
 
 // -----------------
-app.post("/delivery", async (resquest: Request, response: Response) => {
+const init = async () => {
   try {
-    const { body: data = {} } = resquest;
-    const delivery = await DeliveryModel.create(data);
-    const messageBody = await delivery.populate();
+    await mongoose.connect(MONGODB_URL);
 
-    const params: AWS.SQS.SendMessageRequest = {
-      MessageBody: JSON.stringify(messageBody),
-      QueueUrl: SQS_URL_DELIVERY,
-    };
+    app.post("/delivery", async (resquest: Request, response: Response) => {
+      try {
+        const { body: data = {} } = resquest;
+        const delivery = await DeliveryModel.create(data);
+        const messageBody = delivery.toObject();
 
-    const onMessageSent = async (
-      error: AWS.AWSError,
-      data: AWS.SQS.SendMessageResult,
-    ) => {
-      console.log(data);
+        const params: AWS.SQS.SendMessageRequest = {
+          MessageBody: JSON.stringify(messageBody),
+          QueueUrl: SQS_URL_DELIVERY,
+        };
 
-      error
-        ? response.status(500).json({
-            status: 500,
-            error: error.message,
-          })
-        : response.status(200).json({
-            status: 200,
-            data: {
-              ...(await delivery.populate()),
-              messageIdSQS: data.MessageId,
-            },
-          });
-    };
+        const onMessageSent = async (
+          error: AWS.AWSError,
+          data: AWS.SQS.SendMessageResult,
+        ) => {
+          error
+            ? response.status(500).json({
+                status: 500,
+                error: error.message,
+              })
+            : response.status(200).json({
+                status: 200,
+                data: {
+                  ...delivery.toObject(),
+                  messageIdSQS: data.MessageId,
+                },
+              });
+        };
 
-    sqs.sendMessage(params, onMessageSent);
-  } catch (e) {
-    const error = e as AWS.AWSError;
-    const status = error?.statusCode || 500;
-
-    response.status(status).json({
-      status: status,
-      error: error?.message || "Internal error server",
+        sqs.sendMessage(params, onMessageSent);
+      } catch (e) {
+        const error = e as AWS.AWSError;
+        const status = error?.statusCode || 500;
+        response.status(status).json({
+          status: status,
+          error: error?.message || "Internal error server",
+        });
+      }
     });
+
+    app.get("/delivery", async (resquest: Request, response: Response) => {
+      const deliveries = await DeliveryModel.find();
+
+      response.status(200).json({
+        status: 200,
+        data: deliveries,
+      });
+    });
+
+    app.get("/delivery/:id", async (resquest: Request, response: Response) => {
+      const { id } = resquest.params;
+      const delivery = await DeliveryModel.findById(id);
+      const data = delivery?.toObject();
+
+      response.status(200).json({
+        status: 200,
+        data,
+      });
+    });
+
+    app.patch(
+      "/delivery/:id",
+      async (resquest: Request, response: Response) => {
+        const { id } = resquest.params;
+        const { body = {} } = resquest;
+        const data = cleanDeep(body);
+        delete data.id;
+        const delivery = await DeliveryModel.findByIdAndUpdate(id, data, {
+          new: true,
+        });
+
+        response.status(200).json({
+          status: 200,
+          data: delivery?.toObject(),
+        });
+      },
+    );
+
+    app.delete(
+      "/delivery/:id",
+      async (resquest: Request, response: Response) => {
+        const { id } = resquest.params;
+        await DeliveryModel.deleteOne({ id });
+
+        response.status(200).json({
+          status: 200,
+        });
+      },
+    );
+
+    app.listen(PORT, () => logger(`app is up on port: ${PORT}`));
+  } catch (e) {
+    logger(e);
   }
-});
+};
 
-app.get("/delivery", async (resquest: Request, response: Response) => {
-  const deliveries = await DeliveryModel.scan().exec();
-
-  response.status(200).json({
-    status: 200,
-    data: deliveries,
-  });
-});
-
-app.get("/delivery/:id", async (resquest: Request, response: Response) => {
-  const { id } = resquest.params;
-  const delivery = await DeliveryModel.get(id);
-  const data = await delivery.populate();
-
-  response.status(200).json({
-    status: 200,
-    data,
-  });
-});
-
-app.patch("/delivery/:id", async (resquest: Request, response: Response) => {
-  const { id } = resquest.params;
-  const { body = {} } = resquest;
-  const data = cleanDeep(body);
-
-  delete data.id;
-  const delivery = await DeliveryModel.update({ id }, data);
-
-  response.status(200).json({
-    status: 200,
-    data: await delivery.populate(),
-  });
-});
-
-app.delete("/delivery/:id", async (resquest: Request, response: Response) => {
-  const { id } = resquest.params;
-  await DeliveryModel.delete(id);
-
-  response.status(200).json({
-    status: 200,
-  });
-});
-
-app.listen(PORT, () => console.log(`app is up on port: ${PORT}`));
+init();
