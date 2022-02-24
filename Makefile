@@ -10,7 +10,6 @@ stop:
 logs:
 	docker-compose logs -f hub-api
 
-
 # version work sqs - 0.11.2
 .PHONY: setup
 setup:
@@ -27,14 +26,14 @@ setup:
 		awslocal iam create-role --role-name hub-api-role --assume-role-policy-document '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": ["lambda.amazonaws.com", "apigateway.amazonaws.com"]}, "Action": "sts:AssumeRole"}]}'
 
 	docker-compose exec localstack \
-		awslocal lambda create-function --function-name hub-api --runtime nodejs12.x --role arn:aws:iam::000000000000:role/hub-api-role --handler api-serverless/index.handler --zip-file fileb://hub-api.zip --publish --environment Variables={SQS_URL_DELIVERY=string,MONGODB_URL=string}
+		awslocal lambda create-function --function-name hub-api --runtime nodejs12.x --role arn:aws:iam::000000000000:role/hub-api-role --handler api-serverless/index.handler --code S3Bucket=hub-api,S3Key=lambda.zip --publish --environment Variables='{SQS_URL_DELIVERY=string,MONGODB_URL=string}'
 
 .PHONY: deploy-serverless
 deploy-serverless:
 	zip -r -D hub-api.zip api-serverless/
 	docker cp hub-api.zip localstack:/tmp/hub-api.zip
-	# docker-compose exec localstack \
-	# 	awslocal lambda update-function-code --function-name hub-api --zip-file fileb://hub-api.zip
+	docker-compose exec localstack awslocal s3 cp /tmp/hub-api.zip s3://hub-api/lambda.zip
+	docker-compose exec localstack awslocal lambda update-function-code --function-name hub-api --s3-bucket hub-api --s3-key lambda.zip --publish
 	
 .PHONY: invoke
 invoke:

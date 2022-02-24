@@ -5,7 +5,8 @@ services:
     image: localstack/localstack
     container_name: localstack
     ports:
-      - "8080:8080"
+      - "4566:4566"
+      - "4571:4571"
     environment:
       - SERVICES=s3,lambda,sqs,apigateway,iam
       - DATA_DIR=/tmp/localstack/data
