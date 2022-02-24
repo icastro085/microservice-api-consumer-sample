@@ -2,14 +2,15 @@ version: '3'
 services:
 
   localstack:
-    image: localstack/localstack:0.11.2
+    image: localstack/localstack
     container_name: localstack
     ports:
-      - "4576:4576"
+      - "8080:8080"
     environment:
-      - SERVICES=sqs
+      - SERVICES=s3,lambda,sqs,apigateway,iam
       - DATA_DIR=/tmp/localstack/data
       - DOCKER_HOST=unix:///var/run/docker.sock
+      - LAMBDA_EXECUTOR=docker
 
       # AWS
       - AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
@@ -18,6 +19,7 @@ services:
       - AWS_DEFAULT_OUTPUT=json
     volumes:
       - ".data/localstack:/tmp/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
   
   mongo:
     image: mongo:4
