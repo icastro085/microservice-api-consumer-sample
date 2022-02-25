@@ -1,0 +1,9 @@
+aws_access_key = "AWS_ACCESS_KEY"
+aws_secret_key = "AWS_SECRET_KEY"
+aws_profile    = "jcpm"
+
+aws_s3_use_path_style           = true
+aws_skip_credentials_validation = true
+aws_skip_metadata_api_check     = true
+aws_skip_requesting_account_id  = true
+

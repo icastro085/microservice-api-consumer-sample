@@ -6,22 +6,31 @@ services:
     container_name: localstack
     ports:
       - "4566:4566"
-      - "4571:4571"
     environment:
       - SERVICES=s3,lambda,sqs,apigateway,iam
+      - LAMBDA_EXECUTOR=docker_reuse
       - DATA_DIR=/tmp/localstack/data
       - DOCKER_HOST=unix:///var/run/docker.sock
-      - LAMBDA_EXECUTOR=docker
+      - DEFAULT_REGION=us-east-2
+      - DEBUG=1
+      - PORT_WEB_UI=8080
+      - LAMBDA_DOCKER_NETWORK=localstack
+      - "53:53"
+      - "53:53/udp"
+      - "443:443"
+      - "4566:4566"
+      - "4571:4571"
+      - "8080:8080"
 
       # AWS
-      - AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
-      - AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+      - AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY
+      - AWS_SECRET_ACCESS_KEY=AWS_SECRET_KEY
       - AWS_DEFAULT_REGION=us-east-2
       - AWS_DEFAULT_OUTPUT=json
     volumes:
       - ".data/localstack:/tmp/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
-  
+
   mongo:
     image: mongo:4
     container_name: mongo
@@ -36,14 +45,14 @@ services:
     working_dir: /home/node/app
     restart: always
     volumes:
-        - "./api:/home/node/app"
+      - "./api:/home/node/app"
     env_file: .env
     environment:
       - PORT=3001
 
       # AWS
-      - AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
-      - AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+      - AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY
+      - AWS_SECRET_ACCESS_KEY=AWS_SECRET_KEY
       - AWS_DEFAULT_REGION=us-east-2
       - AWS_DEFAULT_OUTPUT=json
     ports:
@@ -52,7 +61,7 @@ services:
       - localstack
       - mongo
     command: yarn start:dev
-  
+
   hub-delivery-consumer-request:
     image: node:16.13.0-alpine
     container_name: hub-delivery-consumer-request
@@ -60,7 +69,7 @@ services:
     working_dir: /home/node/app
     restart: always
     volumes:
-        - "./delivery-consumer-request:/home/node/app"
+      - "./delivery-consumer-request:/home/node/app"
     environment:
       # AWS
       - AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
@@ -70,7 +79,7 @@ services:
     depends_on:
       - localstack
     command: yarn start:dev
-  
+
   hub-delivery-consumer-response:
     image: node:16.13.0-alpine
     container_name: hub-delivery-consumer-response
@@ -78,7 +87,7 @@ services:
     working_dir: /home/node/app
     restart: always
     volumes:
-        - "./delivery-consumer-response:/home/node/app"
+      - "./delivery-consumer-response:/home/node/app"
     environment:
       # AWS
       - AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE

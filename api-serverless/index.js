@@ -1,4 +1,14 @@
-exports.handler =  async function(event, context) {
-  console.log("EVENT: \n" + JSON.stringify(event, null, 2))
-  return context.logStreamName
-}
+exports.handler = async function (event, context) {
+  console.log('Event: ', event);
+  let responseMessage = 'Hello, World!';
+
+  return {
+    statusCode: 200,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      message: responseMessage,
+    }),
+  };
+};
