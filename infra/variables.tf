@@ -1,3 +1,12 @@
+variable "env" {
+  type = string
+
+  # validation {
+  #   condition     = contains(["development", "staging", "production"], var.env)
+  #   error_message = "variable env  needs to be: development | staging | production"
+  # }
+}
+
 variable "aws_access_key" {
   type = string
 }

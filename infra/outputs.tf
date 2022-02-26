@@ -15,11 +15,11 @@ output "hub-queue-response_url" {
 }
 
 output "hub-api-bucket" {
-  value = aws_s3_bucket.hub_api.arn
+  value = aws_s3_bucket.hub_api_bucket.arn
 }
 
 output "hub-api-bucket_domain_name" {
-  value = aws_s3_bucket.hub_api.bucket_domain_name
+  value = aws_s3_bucket.hub_api_bucket.bucket_domain_name
 }
 
 output "hub-role" {
@@ -28,4 +28,20 @@ output "hub-role" {
 
 output "hub-api-lambda" {
   value = aws_lambda_function.hub_api.arn
+}
+
+output "hub-apigateway-url" {
+  value = aws_api_gateway_stage.hub_api.invoke_url
+}
+
+output "hub-apigateway-url-local" {
+  value = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.hub_api.id}/${aws_api_gateway_stage.hub_api.stage_name}/_user_request_/"
+}
+
+# output "hub_api_log" {
+#   value = aws_cloudwatch_log_group.hub_api_log.arn
+# }
+
+output "env" {
+  value = var.env
 }

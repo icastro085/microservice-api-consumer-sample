@@ -5,14 +5,6 @@ terraform {
       version = "4.2.0"
     }
   }
-
-  # backend "s3" {
-  #   bucket  = "hub-api"
-  #   encrypt = "false"
-  #   key     = "development/terraform.tfstate"
-  #   region  = "us-east-2"
-  #   profile = "jcpm"
-  # }
 }
 
 provider "aws" {
@@ -28,20 +20,20 @@ provider "aws" {
 
   endpoints {
     apigateway = "http://localhost:4566"
+    cloudwatch = "http://localhost:4566"
+    ec2        = "http://localhost:4566"
     iam        = "http://localhost:4566"
     lambda     = "http://localhost:4566"
     s3         = "http://localhost:4566"
-    ses        = "http://localhost:4566"
-    sns        = "http://localhost:4566"
     sqs        = "http://localhost:4566"
   }
 }
 
-data "archive_file" "hub_api_lambda" {
+data "archive_file" "hub_api_zip" {
   type             = "zip"
   output_file_mode = "0666"
-  source_dir       = local.hub_api_cp_lambda_source
-  output_path      = local.hub_api_cp_lambda_source_path
+  source_dir       = local.hub_api_zip_source
+  output_path      = local.hub_api_zip_output
 }
 
 resource "aws_sqs_queue" "delivery_request_queue" {
@@ -53,29 +45,30 @@ resource "aws_sqs_queue" "delivery_response_queue" {
   fifo_queue = true
 }
 
-resource "aws_s3_bucket" "hub_api" {
+resource "aws_s3_bucket" "hub_api_bucket" {
   bucket = "hub-api"
 }
 
-resource "aws_s3_object" "hub_api_cp_lambda" {
-  bucket       = aws_s3_bucket.hub_api.id
-  source       = data.archive_file.hub_api_lambda.output_path
-  key          = local.hub_api_cp_lambda_key
-  content_type = local.hub_api_cp_lambda_content_type
+resource "aws_s3_object" "hub_api_source" {
+  bucket = aws_s3_bucket.hub_api_bucket.id
+  source = data.archive_file.hub_api_zip.output_path
+
+  key          = local.hub_api_source_key
+  content_type = local.hub_api_source_content_type
 }
 
 resource "aws_iam_role" "hub_api_role" {
   name = "hub-api-role"
 
   assume_role_policy = jsonencode({
-    Version : "2012-10-17"
-    Statement : [
+    Version = "2012-10-17"
+    Statement = [
       {
-        Effect : "Allow"
-        Principal : {
-          Service : ["lambda.amazonaws.com", "apigateway.amazonaws.com"]
-        },
-        Action : "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = ["lambda.amazonaws.com", "apigateway.amazonaws.com"]
+        }
+        Action = "sts:AssumeRole"
       }
     ]
   })
@@ -84,10 +77,52 @@ resource "aws_iam_role" "hub_api_role" {
 resource "aws_lambda_function" "hub_api" {
   function_name = "hub-api"
 
-  s3_bucket = aws_s3_bucket.hub_api.id
-  s3_key    = aws_s3_object.hub_api_cp_lambda.key
+  s3_bucket = aws_s3_bucket.hub_api_bucket.id
+  s3_key    = aws_s3_object.hub_api_source.key
   role      = aws_iam_role.hub_api_role.arn
 
   runtime = "nodejs12.x"
-  handler = "api-serverless/index.handler"
+  handler = "index.handler"
+}
+
+resource "aws_api_gateway_rest_api" "hub_api" {
+  name = "hub-api"
+}
+
+resource "aws_api_gateway_method" "hub_api_root_get" {
+  rest_api_id = aws_api_gateway_rest_api.hub_api.id
+  resource_id = aws_api_gateway_rest_api.hub_api.root_resource_id
+
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "hub_api_root" {
+  rest_api_id             = aws_api_gateway_rest_api.hub_api.id
+  resource_id             = aws_api_gateway_rest_api.hub_api.root_resource_id
+  http_method             = aws_api_gateway_method.hub_api_root_get.http_method
+  integration_http_method = "GET"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.hub_api.invoke_arn
+}
+
+resource "aws_api_gateway_deployment" "hub_api_root" {
+  rest_api_id = aws_api_gateway_rest_api.hub_api.id
+
+  triggers = {
+    redeployment = sha1(jsonencode([
+      aws_api_gateway_method.hub_api_root_get.id,
+      aws_api_gateway_integration.hub_api_root.id,
+    ]))
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_api_gateway_stage" "hub_api" {
+  rest_api_id   = aws_api_gateway_rest_api.hub_api.id
+  deployment_id = aws_api_gateway_deployment.hub_api_root.id
+  stage_name    = "hub-api"
 }
