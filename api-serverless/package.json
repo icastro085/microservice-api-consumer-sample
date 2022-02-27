@@ -1,0 +1,10 @@
+{
+  "name": "api-serverless",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@vendia/serverless-express": "^4.5.4",
+    "express": "^4.17.3"
+  }
+}

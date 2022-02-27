@@ -10,3 +10,6 @@ apply:
 
 destroy:
 	terraform destroy -auto-approve
+
+validate:
+	terraform validate

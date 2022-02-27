@@ -1,14 +1,32 @@
-exports.handler = async function (event, context) {
-  console.log('Event: ', event);
-  let responseMessage = 'Hello, World!';
+const express = require("express");
+const serverless = require("@vendia/serverless-express");
 
-  return {
-    statusCode: 200,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      message: responseMessage,
-    }),
-  };
-};
+const app = express();
+
+app.get("/", (req, res) => {
+  res.json({
+    message: "Hello, World!",
+  });
+});
+
+app.get("/hi", (req, res) => {
+  res.json({
+    message: "Hi!",
+  });
+});
+
+app.get("/oi", (req, res) => {
+  res.json({
+    message: "Oi!",
+  });
+});
+
+app.get("/hello/:name", (req, res) => {
+  const { name } = req.params;
+
+  res.json({
+    message: `Hello ${name}!`,
+  });
+});
+
+exports.handler = serverless({ app });

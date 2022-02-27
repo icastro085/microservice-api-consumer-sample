@@ -57,7 +57,7 @@ resource "aws_s3_object" "hub_api_source" {
   content_type = local.hub_api_source_content_type
 }
 
-resource "aws_iam_role" "hub_api_role" {
+resource "aws_iam_role" "this" {
   name = "hub-api-role"
 
   assume_role_policy = jsonencode({
@@ -74,45 +74,72 @@ resource "aws_iam_role" "hub_api_role" {
   })
 }
 
-resource "aws_lambda_function" "hub_api" {
+resource "aws_lambda_function" "this" {
   function_name = "hub-api"
 
   s3_bucket = aws_s3_bucket.hub_api_bucket.id
   s3_key    = aws_s3_object.hub_api_source.key
-  role      = aws_iam_role.hub_api_role.arn
+  role      = aws_iam_role.this.arn
 
   runtime = "nodejs12.x"
   handler = "index.handler"
 }
 
-resource "aws_api_gateway_rest_api" "hub_api" {
+resource "aws_api_gateway_rest_api" "this" {
   name = "hub-api"
 }
 
-resource "aws_api_gateway_method" "hub_api_root_get" {
-  rest_api_id = aws_api_gateway_rest_api.hub_api.id
-  resource_id = aws_api_gateway_rest_api.hub_api.root_resource_id
+resource "aws_api_gateway_method" "this" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_rest_api.this.root_resource_id
 
-  http_method   = "GET"
+  http_method   = "ANY"
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "hub_api_root" {
-  rest_api_id             = aws_api_gateway_rest_api.hub_api.id
-  resource_id             = aws_api_gateway_rest_api.hub_api.root_resource_id
-  http_method             = aws_api_gateway_method.hub_api_root_get.http_method
-  integration_http_method = "GET"
+resource "aws_api_gateway_integration" "this" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_rest_api.this.root_resource_id
+  http_method = aws_api_gateway_method.this.http_method
+
+  integration_http_method = "ANY"
   type                    = "AWS_PROXY"
-  uri                     = aws_lambda_function.hub_api.invoke_arn
+  uri                     = aws_lambda_function.this.invoke_arn
 }
 
-resource "aws_api_gateway_deployment" "hub_api_root" {
-  rest_api_id = aws_api_gateway_rest_api.hub_api.id
+resource "aws_api_gateway_resource" "proxy" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  parent_id   = aws_api_gateway_rest_api.this.root_resource_id
+  path_part   = "{proxy+}"
+}
+
+resource "aws_api_gateway_method" "proxy" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.proxy.id
+
+  http_method   = "ANY"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "proxy" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.proxy.id
+  http_method = aws_api_gateway_method.proxy.http_method
+
+  integration_http_method = "ANY"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.this.invoke_arn
+}
+
+resource "aws_api_gateway_deployment" "this" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
 
   triggers = {
     redeployment = sha1(jsonencode([
-      aws_api_gateway_method.hub_api_root_get.id,
-      aws_api_gateway_integration.hub_api_root.id,
+      aws_api_gateway_method.this.id,
+      aws_api_gateway_method.proxy.id,
+      aws_api_gateway_integration.this.id,
+      aws_api_gateway_integration.proxy.id,
     ]))
   }
 
@@ -121,8 +148,8 @@ resource "aws_api_gateway_deployment" "hub_api_root" {
   }
 }
 
-resource "aws_api_gateway_stage" "hub_api" {
-  rest_api_id   = aws_api_gateway_rest_api.hub_api.id
-  deployment_id = aws_api_gateway_deployment.hub_api_root.id
+resource "aws_api_gateway_stage" "this" {
+  rest_api_id   = aws_api_gateway_rest_api.this.id
+  deployment_id = aws_api_gateway_deployment.this.id
   stage_name    = "hub-api"
 }

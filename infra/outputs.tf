@@ -23,19 +23,19 @@ output "hub-api-bucket_domain_name" {
 }
 
 output "hub-role" {
-  value = aws_iam_role.hub_api_role.arn
+  value = aws_iam_role.this.arn
 }
 
 output "hub-api-lambda" {
-  value = aws_lambda_function.hub_api.arn
+  value = aws_lambda_function.this.arn
 }
 
 output "hub-apigateway-url" {
-  value = aws_api_gateway_stage.hub_api.invoke_url
+  value = aws_api_gateway_stage.this.invoke_url
 }
 
 output "hub-apigateway-url-local" {
-  value = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.hub_api.id}/${aws_api_gateway_stage.hub_api.stage_name}/_user_request_/"
+  value = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.this.id}/${aws_api_gateway_stage.this.stage_name}/_user_request_/"
 }
 
 # output "hub_api_log" {
