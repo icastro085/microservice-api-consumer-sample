@@ -1,32 +1,25 @@
-const express = require("express");
-const serverless = require("@vendia/serverless-express");
+const serverlessExpress = require("@vendia/serverless-express");
+const app = require("./app");
 
-const app = express();
+let serverlessExpressInstance;
 
-app.get("/", (req, res) => {
-  res.json({
-    message: "Hello, World!",
+function asyncTask() {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve('connected to database'), 1000);
   });
-});
+}
 
-app.get("/hi", (req, res) => {
-  res.json({
-    message: "Hi!",
-  });
-});
+async function setup(event, context) {
+  const asyncValue = await asyncTask();
+  console.log(asyncValue);
+  serverlessExpressInstance = serverlessExpress({ app });
+  return serverlessExpressInstance(event, context);
+}
 
-app.get("/oi", (req, res) => {
-  res.json({
-    message: "Oi!",
-  });
-});
+function handler(event, context) {
+  return serverlessExpressInstance
+    ? serverlessExpressInstance(event, context)
+    : setup(event, context);
+}
 
-app.get("/hello/:name", (req, res) => {
-  const { name } = req.params;
-
-  res.json({
-    message: `Hello ${name}!`,
-  });
-});
-
-exports.handler = serverless({ app });
+exports.handler = handler;
