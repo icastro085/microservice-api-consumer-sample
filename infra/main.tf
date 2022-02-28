@@ -29,29 +29,22 @@ provider "aws" {
   }
 }
 
-data "archive_file" "hub_api_zip" {
-  type             = "zip"
-  output_file_mode = "0666"
-  source_dir       = local.hub_api_zip_source
-  output_path      = local.hub_api_zip_output
-}
+# resource "aws_sqs_queue" "delivery_request_queue" {
+#   name = "delivery-request-queue"
+# }
 
-resource "aws_sqs_queue" "delivery_request_queue" {
-  name = "delivery-request-queue"
-}
+# resource "aws_sqs_queue" "delivery_response_queue" {
+#   name       = "delivery-response-queue.fifo"
+#   fifo_queue = true
+# }
 
-resource "aws_sqs_queue" "delivery_response_queue" {
-  name       = "delivery-response-queue.fifo"
-  fifo_queue = true
-}
-
-resource "aws_s3_bucket" "hub_api_bucket" {
+resource "aws_s3_bucket" "this" {
   bucket = "hub-api"
 }
 
-resource "aws_s3_object" "hub_api_source" {
-  bucket = aws_s3_bucket.hub_api_bucket.id
-  source = data.archive_file.hub_api_zip.output_path
+resource "aws_s3_object" "this" {
+  bucket = aws_s3_bucket.this.id
+  source = "${path.module}/resources/lambda/function.zip"
 
   key          = local.hub_api_source_key
   content_type = local.hub_api_source_content_type
@@ -77,8 +70,8 @@ resource "aws_iam_role" "this" {
 resource "aws_lambda_function" "this" {
   function_name = "hub-api"
 
-  s3_bucket = aws_s3_bucket.hub_api_bucket.id
-  s3_key    = aws_s3_object.hub_api_source.key
+  s3_bucket = aws_s3_bucket.this.id
+  s3_key    = aws_s3_object.this.key
   role      = aws_iam_role.this.arn
 
   runtime = "nodejs12.x"

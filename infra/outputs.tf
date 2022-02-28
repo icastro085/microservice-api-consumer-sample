@@ -1,25 +1,25 @@
-output "hub-queue-request" {
-  value = aws_sqs_queue.delivery_request_queue.arn
-}
+# output "hub-queue-request" {
+#   value = aws_sqs_queue.delivery_request_queue.arn
+# }
 
-output "hub-queue-request_url" {
-  value = aws_sqs_queue.delivery_request_queue.url
-}
+# output "hub-queue-request_url" {
+#   value = aws_sqs_queue.delivery_request_queue.url
+# }
 
-output "hub-queue-response" {
-  value = aws_sqs_queue.delivery_response_queue.arn
-}
+# output "hub-queue-response" {
+#   value = aws_sqs_queue.delivery_response_queue.arn
+# }
 
-output "hub-queue-response_url" {
-  value = aws_sqs_queue.delivery_response_queue.url
-}
+# output "hub-queue-response_url" {
+#   value = aws_sqs_queue.delivery_response_queue.url
+# }
 
 output "hub-api-bucket" {
-  value = aws_s3_bucket.hub_api_bucket.arn
+  value = aws_s3_bucket.this.arn
 }
 
 output "hub-api-bucket_domain_name" {
-  value = aws_s3_bucket.hub_api_bucket.bucket_domain_name
+  value = aws_s3_bucket.this.bucket_domain_name
 }
 
 output "hub-role" {
