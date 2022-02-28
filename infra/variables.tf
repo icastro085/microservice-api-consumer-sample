@@ -22,7 +22,7 @@ variable "aws_region" {
 
 variable "aws_profile" {
   type    = string
-  default = "default"
+  default = "localstack"
 }
 
 variable "aws_s3_use_path_style" {

@@ -1,5 +1,5 @@
 locals {
-  hub_api_source_key          = "lambda.zip"
+  hub_api_source_key          = "function.zip"
   hub_api_source_content_type = "application/zip"
 
   hub_api_zip_source = "${path.module}/../api-serverless"
