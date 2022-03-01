@@ -1,8 +1,10 @@
+.PHONY: build
 build:
 	@echo "Compacting resources"
 	@zip -rq ../.tmp/function.zip .
 	@echo "Finish"
 
+.PHONY: deploy
 deploy: build
 	@echo "Deploying resources"
 

@@ -1,5 +1,6 @@
-.terraform
+**/.terraform
+**/*.tfplan
+**/tfplan.out
 terraform.tfstate
 terraform.tfstate.backup
-tfplan.out
 development.auto.tfvars

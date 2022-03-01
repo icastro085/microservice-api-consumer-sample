@@ -50,21 +50,20 @@ resource "aws_s3_object" "this" {
   content_type = local.hub_api_source_content_type
 }
 
-resource "aws_iam_role" "this" {
-  name = "hub-api-role"
+data "aws_iam_policy_document" "lambda" {
+  statement {
+    actions = ["sts:AssumeRole"]
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = ["lambda.amazonaws.com", "apigateway.amazonaws.com"]
-        }
-        Action = "sts:AssumeRole"
-      }
-    ]
-  })
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com", "apigateway.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "this" {
+  name               = "hub-api-role"
+  assume_role_policy = data.aws_iam_policy_document.lambda.json
 }
 
 resource "aws_lambda_function" "this" {
@@ -74,7 +73,7 @@ resource "aws_lambda_function" "this" {
   s3_key    = aws_s3_object.this.key
   role      = aws_iam_role.this.arn
 
-  runtime = "nodejs12.x"
+  runtime = "nodejs14.x"
   handler = "index.handler"
 }
 
@@ -95,7 +94,7 @@ resource "aws_api_gateway_integration" "this" {
   resource_id = aws_api_gateway_rest_api.this.root_resource_id
   http_method = aws_api_gateway_method.this.http_method
 
-  integration_http_method = "ANY"
+  integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.this.invoke_arn
 }
@@ -119,7 +118,7 @@ resource "aws_api_gateway_integration" "proxy" {
   resource_id = aws_api_gateway_resource.proxy.id
   http_method = aws_api_gateway_method.proxy.http_method
 
-  integration_http_method = "ANY"
+  integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.this.invoke_arn
 }
@@ -145,4 +144,21 @@ resource "aws_api_gateway_stage" "this" {
   rest_api_id   = aws_api_gateway_rest_api.this.id
   deployment_id = aws_api_gateway_deployment.this.id
   stage_name    = "hub-api"
+}
+
+module "hub_spa_root_bucket" {
+  source = "./modules/s3-website"
+  bucket = "hub-spa-root"
+}
+
+output "hub_spa_root_bucket_arn" {
+  value = module.hub_spa_root_bucket.arn
+}
+
+output "hub_spa_root_bucket_regional_domain_name" {
+  value = module.hub_spa_root_bucket.regional_domain_name
+}
+
+output "hub_spa_root_bucket_website_endpoint" {
+  value = module.hub_spa_root_bucket.website_endpoint
 }
