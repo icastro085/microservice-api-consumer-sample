@@ -29,14 +29,27 @@ provider "aws" {
   }
 }
 
-# resource "aws_sqs_queue" "delivery_request_queue" {
-#   name = "delivery-request-queue"
-# }
+# message queue setup
 
-# resource "aws_sqs_queue" "delivery_response_queue" {
-#   name       = "delivery-response-queue.fifo"
-#   fifo_queue = true
-# }
+resource "aws_sqs_queue" "delivery_request_queue" {
+  name = "delivery-request-queue"
+}
+
+resource "aws_sqs_queue" "delivery_response_queue" {
+  name       = "delivery-response-queue.fifo"
+  fifo_queue = true
+}
+
+resource "aws_sqs_queue" "webhook_queue" {
+  name       = "webhook-queue.fifo"
+  fifo_queue = true
+}
+
+output "hub-queue-webhook" {
+  value = aws_sqs_queue.webhook_queue.id
+}
+
+# lambda and apigateway setup
 
 resource "aws_s3_bucket" "this" {
   bucket = "hub-api"
@@ -75,6 +88,11 @@ resource "aws_lambda_function" "this" {
 
   runtime = "nodejs14.x"
   handler = "index.handler"
+}
+
+resource "aws_lambda_event_source_mapping" "this" {
+  event_source_arn = aws_sqs_queue.webhook_queue.arn
+  function_name    = aws_lambda_function.this.arn
 }
 
 resource "aws_api_gateway_rest_api" "this" {
@@ -145,6 +163,8 @@ resource "aws_api_gateway_stage" "this" {
   deployment_id = aws_api_gateway_deployment.this.id
   stage_name    = "hub-api"
 }
+
+# website storage
 
 module "hub_spa_root_bucket" {
   source = "./modules/s3-website"

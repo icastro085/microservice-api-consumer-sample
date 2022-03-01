@@ -27,4 +27,12 @@ app.get("/hello/:name", (req, res) => {
   });
 });
 
+app.post("/sqs-hanlder", (req, res) => {
+  const { body } = req;
+  console.log("SQS HANLDER", body)
+  res.json({
+    message: "Hello, World! - sqs-hanlder",
+  });
+});
+
 module.exports = app;

@@ -7,6 +7,7 @@ import cleanDeep from "clean-deep";
 // -----------------
 const PORT = (process.env.PORT || 3001) as string | number;
 const SQS_URL_DELIVERY = process.env.SQS_URL_DELIVERY as string;
+const SQS_URL_WEBHOOK = process.env.SQS_URL_WEBHOOK as string;
 const MONGODB_URL = process.env.MONGODB_URL as string;
 
 type AnyThing = Record<string, unknown>;
@@ -67,7 +68,7 @@ const DeliverySchema = new Schema<Delivery>({
 const DeliveryModel = mongoose.model<Delivery>("DeliveryModel", DeliverySchema);
 
 // -----------------
-const sqs = new AWS.SQS({ region: "us-east-1" });
+const sqs = new AWS.SQS({ region: "us-east-2" });
 const app = express();
 
 app.use(express.json());
@@ -81,10 +82,10 @@ const init = async () => {
       try {
         const { body: data = {} } = resquest;
         const delivery = await DeliveryModel.create(data);
-        const messageBody = delivery.toObject();
+        const messageBody = JSON.stringify(delivery.toObject());
 
         const params: AWS.SQS.SendMessageRequest = {
-          MessageBody: JSON.stringify(messageBody),
+          MessageBody: messageBody,
           QueueUrl: SQS_URL_DELIVERY,
         };
 
@@ -92,6 +93,7 @@ const init = async () => {
           error: AWS.AWSError,
           data: AWS.SQS.SendMessageResult,
         ) => {
+          console.log(error);
           error
             ? response.status(500).json({
                 status: 500,
@@ -147,6 +149,27 @@ const init = async () => {
         const delivery = await DeliveryModel.findByIdAndUpdate(id, data, {
           new: true,
         });
+
+        // SQS WEBHOOK-----------------------------------
+        const messageBody = JSON.stringify(delivery?.toObject());
+
+        const params: AWS.SQS.SendMessageRequest = {
+          MessageBody: messageBody,
+          QueueUrl: SQS_URL_WEBHOOK,
+          MessageGroupId: body.id,
+          MessageDeduplicationId: `${body.id}-${body.status}`,
+        };
+
+        const onMessageSent = async (
+          error: AWS.AWSError,
+          data: AWS.SQS.SendMessageResult,
+        ) => {
+          console.log("WEBHOOK");
+          error ? console.log("ERROR", error) : console.log("DATA:", data);
+        };
+
+        sqs.sendMessage(params, onMessageSent);
+        // -----------------------------------
 
         response.status(200).json({
           status: 200,

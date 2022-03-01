@@ -1,5 +1,6 @@
 const serverlessExpress = require("@vendia/serverless-express");
 const app = require("./app");
+const { requestMapper, responseMapper } = require("./event-mappings");
 
 let serverlessExpressInstance;
 
@@ -12,7 +13,15 @@ function asyncTask() {
 async function setup(event, context) {
   const asyncValue = await asyncTask();
   console.log(asyncValue);
-  serverlessExpressInstance = serverlessExpress({ app });
+
+  serverlessExpressInstance = serverlessExpress({
+    app,
+    eventSource: {
+      getRequest: requestMapper,
+      getResponse: responseMapper,
+    }
+  });
+
   return serverlessExpressInstance(event, context);
 }
 

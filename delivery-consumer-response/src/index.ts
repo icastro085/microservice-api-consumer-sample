@@ -46,4 +46,4 @@ consumer.on("processing_error", (error) => {
   console.error(error.message);
 });
 
-// consumer.start();
+consumer.start();

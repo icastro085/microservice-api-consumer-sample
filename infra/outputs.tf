@@ -1,18 +1,18 @@
-# output "hub-queue-request" {
-#   value = aws_sqs_queue.delivery_request_queue.arn
-# }
+output "hub-queue-request" {
+  value = aws_sqs_queue.delivery_request_queue.arn
+}
 
-# output "hub-queue-request_url" {
-#   value = aws_sqs_queue.delivery_request_queue.url
-# }
+output "hub-queue-request_url" {
+  value = aws_sqs_queue.delivery_request_queue.url
+}
 
-# output "hub-queue-response" {
-#   value = aws_sqs_queue.delivery_response_queue.arn
-# }
+output "hub-queue-response" {
+  value = aws_sqs_queue.delivery_response_queue.arn
+}
 
-# output "hub-queue-response_url" {
-#   value = aws_sqs_queue.delivery_response_queue.url
-# }
+output "hub-queue-response_url" {
+  value = aws_sqs_queue.delivery_response_queue.url
+}
 
 output "hub-api-bucket" {
   value = aws_s3_bucket.this.arn
