@@ -27,11 +27,21 @@ app.get("/hello/:name", (req, res) => {
   });
 });
 
-app.post("/sqs-hanlder", (req, res) => {
+app.post("/sqs-handler", (req, res) => {
   const { body } = req;
-  console.log("SQS HANLDER", body)
+  console.log(typeof body, "SQS HANDLER", body);
+
   res.json({
     message: "Hello, World! - sqs-hanlder",
+  });
+});
+
+app.post("/s3-handler", (req, res) => {
+  const { body } = req;
+  console.log(typeof body, "S3 HANDLER", body);
+
+  res.json({
+    message: "Hello, World! - s3-hanlder",
   });
 });
 

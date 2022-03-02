@@ -7,7 +7,7 @@ services:
     ports:
       - "4566:4566"
     environment:
-      - SERVICES=apigateway,cloudwatch,ec2,iam,lambda,s3,sqs
+      - SERVICES=apigateway,cloudwatch,ec2,iam,lambda,s3,sqs,logs
       - LAMBDA_EXECUTOR=docker_reuse
       - DATA_DIR=/tmp/localstack/data
       - DOCKER_HOST=unix:///var/run/docker.sock
@@ -74,8 +74,8 @@ services:
       - "./delivery-consumer-request:/home/node/app"
     environment:
       # AWS
-      - AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
-      - AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+      - AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY
+      - AWS_SECRET_ACCESS_KEY=AWS_SECRET_KEY
       - AWS_DEFAULT_REGION=us-east-2
       - AWS_DEFAULT_OUTPUT=json
     depends_on:
@@ -92,8 +92,8 @@ services:
       - "./delivery-consumer-response:/home/node/app"
     environment:
       # AWS
-      - AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
-      - AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+      - AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY
+      - AWS_SECRET_ACCESS_KEY=AWS_SECRET_KEY
       - AWS_DEFAULT_REGION=us-east-2
       - AWS_DEFAULT_OUTPUT=json
     depends_on:

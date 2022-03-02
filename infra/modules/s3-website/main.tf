@@ -4,11 +4,15 @@ resource "aws_s3_bucket" "this" {
 }
 
 resource "aws_s3_bucket_acl" "this" {
+  count = var.is_public_read ? 1 : 0
+
   bucket = aws_s3_bucket.this.id
   acl    = "public-read"
 }
 
 resource "aws_s3_bucket_website_configuration" "this" {
+  count = var.is_website ? 1 : 0
+
   bucket = aws_s3_bucket.this.id
 
   index_document {
@@ -21,6 +25,8 @@ resource "aws_s3_bucket_website_configuration" "this" {
 }
 
 resource "aws_s3_bucket_policy" "this" {
+  count = var.is_public_read ? 1 : 0
+
   bucket = aws_s3_bucket.this.id
 
   policy = jsonencode({

@@ -14,6 +14,14 @@ output "hub-queue-response_url" {
   value = aws_sqs_queue.delivery_response_queue.url
 }
 
+output "hub-queue-webhook" {
+  value = aws_sqs_queue.webhook_queue.id
+}
+
+output "hub-queue-webhook_url" {
+  value = aws_sqs_queue.webhook_queue.url
+}
+
 output "hub-api-bucket" {
   value = aws_s3_bucket.this.arn
 }

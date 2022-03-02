@@ -29,7 +29,7 @@ provider "aws" {
   }
 }
 
-# message queue setup
+# message queue setup -------------------------------------
 
 resource "aws_sqs_queue" "delivery_request_queue" {
   name = "delivery-request-queue"
@@ -40,16 +40,7 @@ resource "aws_sqs_queue" "delivery_response_queue" {
   fifo_queue = true
 }
 
-resource "aws_sqs_queue" "webhook_queue" {
-  name       = "webhook-queue.fifo"
-  fifo_queue = true
-}
-
-output "hub-queue-webhook" {
-  value = aws_sqs_queue.webhook_queue.id
-}
-
-# lambda and apigateway setup
+# lambda and apigateway setup -----------------------------
 
 resource "aws_s3_bucket" "this" {
   bucket = "hub-api"
@@ -69,7 +60,7 @@ data "aws_iam_policy_document" "lambda" {
 
     principals {
       type        = "Service"
-      identifiers = ["lambda.amazonaws.com", "apigateway.amazonaws.com"]
+      identifiers = ["lambda.amazonaws.com"]
     }
   }
 }
@@ -88,11 +79,6 @@ resource "aws_lambda_function" "this" {
 
   runtime = "nodejs14.x"
   handler = "index.handler"
-}
-
-resource "aws_lambda_event_source_mapping" "this" {
-  event_source_arn = aws_sqs_queue.webhook_queue.arn
-  function_name    = aws_lambda_function.this.arn
 }
 
 resource "aws_api_gateway_rest_api" "this" {
@@ -164,11 +150,25 @@ resource "aws_api_gateway_stage" "this" {
   stage_name    = "hub-api"
 }
 
-# website storage
+# webhook setup -------------------------------------------
+
+resource "aws_sqs_queue" "webhook_queue" {
+  name       = "webhook-queue.fifo"
+  fifo_queue = true
+}
+
+resource "aws_lambda_event_source_mapping" "this" {
+  event_source_arn = aws_sqs_queue.webhook_queue.arn
+  function_name    = aws_lambda_function.this.arn
+}
+
+# website storage -----------------------------------------
 
 module "hub_spa_root_bucket" {
-  source = "./modules/s3-website"
-  bucket = "hub-spa-root"
+  source         = "./modules/s3-website"
+  bucket         = "hub-spa-root"
+  is_website     = true
+  is_public_read = true
 }
 
 output "hub_spa_root_bucket_arn" {
@@ -181,4 +181,35 @@ output "hub_spa_root_bucket_regional_domain_name" {
 
 output "hub_spa_root_bucket_website_endpoint" {
   value = module.hub_spa_root_bucket.website_endpoint
+}
+
+# static-uploaded -----------------------------------------
+
+module "hub_static_uploaded_bucket" {
+  source         = "./modules/s3-website"
+  bucket         = "hub-static-uploaded"
+  is_public_read = true
+}
+
+resource "aws_lambda_permission" "bucket_invoke_hub_api" {
+  statement_id  = "AllowExecutionFromS3Bucket"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.this.arn
+  principal     = "s3.amazonaws.com"
+  source_arn    = module.hub_static_uploaded_bucket.arn
+}
+
+resource "aws_s3_bucket_notification" "bucket_hub_api_notification" {
+  bucket = module.hub_static_uploaded_bucket.id
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.this.arn
+    events              = ["s3:ObjectCreated:*"]
+  }
+
+  depends_on = [aws_lambda_permission.bucket_invoke_hub_api]
+}
+
+output "hub_static_uploaded_bucket_arn" {
+  value = module.hub_static_uploaded_bucket.arn
 }

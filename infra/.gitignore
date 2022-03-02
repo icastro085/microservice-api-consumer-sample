@@ -1,6 +1,7 @@
 **/.terraform
 **/*.tfplan
 **/tfplan.out
+**/*.tfstate.lock.info
 terraform.tfstate
 terraform.tfstate.backup
 development.auto.tfvars
