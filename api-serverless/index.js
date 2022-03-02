@@ -6,7 +6,7 @@ let serverlessExpressInstance;
 
 function asyncTask() {
   return new Promise((resolve) => {
-    setTimeout(() => resolve('connected to database'), 1000);
+    setTimeout(() => resolve("connected to database"), 1000);
   });
 }
 

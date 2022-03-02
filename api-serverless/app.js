@@ -1,6 +1,8 @@
 const express = require("express");
 const app = express();
 
+app.use(express.json());
+
 app.get("/", (req, res) => {
   res.json({
     message: "Hello, World!",
@@ -42,6 +44,24 @@ app.post("/s3-handler", (req, res) => {
 
   res.json({
     message: "Hello, World! - s3-hanlder",
+  });
+});
+
+app.post("/post-test", (req, res) => {
+  const { body } = req;
+  console.log(typeof body, "POST TEST", body);
+
+  res.json({
+    message: "Hello, World! - post-test",
+  });
+});
+
+app.get("/post-test", (req, res) => {
+  const { query } = req;
+  console.log(typeof query, "GET TEST", query);
+
+  res.json({
+    message: "Hello, World! - post-test",
   });
 });
 
